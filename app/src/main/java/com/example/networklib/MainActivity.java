@@ -1,8 +1,14 @@
 package com.example.networklib;
 
+import android.annotation.SuppressLint;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.os.Handler;
+import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.ImageButton;
 
 import com.example.networklib.calllbacks.DefaultCallback;
 import com.example.networklib.httpclient.HttpClient;
@@ -25,19 +31,80 @@ import okhttp3.Response;
  * @author jingang.li
  */
 public class MainActivity extends AppCompatActivity {
-    public static final String BASE_URL = "http://capi.luckincoffee.com/";
-    public static final String SHOP_LIST = "resource/s/ehr/shopList";
+    private static final String TAG =MainActivity.class.getSimpleName() ;
+    private static final int SUCCESS =0 ;
+    private static final int ERROR =1 ;
+    private ImageButton mImageButton;
+
+
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        mImageButton=findViewById(R.id.image_button);
 
         testOkHttp();
 
         testMyNetLibGet();
         testMyNetLibPost();
+        testMyNetLibGetPhoto();
+
+    }
+
+    @SuppressLint("HandlerLeak")
+    private Handler handler = new Handler(){
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what){
+                case SUCCESS:
+                    mImageButton.setImageBitmap((Bitmap) msg.obj);
+                    break;
+                case ERROR:
+                    break;
+                    default:
+            }
+        }
+    };
+
+
+
+    private void testMyNetLibGetPhoto() {
+        new HttpClient.HttpClientBuilder().build()
+                .addRequest(new GetRequest("http://f1.haiqq.com/allimg/1813156232/376663358.jpg"))
+                .sendRequest(new DefaultCallback(){
+                    @Override
+                    public void onResponse(Call call, Response response) {
+                        super.onResponse(call, response);
+                        Log.v(TAG,"testMyNetLibGetPhoto onResponse");
+
+                        try {
+                            if(response.body()!=null) {
+                                byte[] picture = response.body().bytes();
+                                //使用BitmapFactory工厂，把字节数组转化为bitmap
+                                Bitmap bitmap = BitmapFactory.decodeByteArray(picture, 0, picture.length);
+                                //通过ImageView，设置图片
+
+                                //使用Handler发送消息
+                                Message msg = Message.obtain();
+                                msg.what = SUCCESS;
+                                msg.obj = bitmap;
+                                handler.sendMessage(msg);
+
+                            }
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+
+                    }
+
+                    @Override
+                    public void onFailure(Call call, IOException e) {
+                        super.onFailure(call, e);
+                        Log.e(TAG,"testMyNetLibGetPhoto onFailure="+e);
+                    }
+                });
 
     }
 
@@ -65,6 +132,11 @@ public class MainActivity extends AppCompatActivity {
                     public void onResponse(Call call, Response response) {
                         super.onResponse(call, response);
                         Log.e("JG","testMyNetLibGet response="+response.toString());
+                    }
+
+                    @Override
+                    public void onFailure(Call call, IOException e) {
+                        super.onFailure(call, e);
                     }
                 });
 
