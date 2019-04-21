@@ -1,9 +1,11 @@
 package com.example.networklib;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -19,6 +21,7 @@ import com.example.networklib.requests.GetRequest;
 import com.example.networklib.requests.PostRequest;
 
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -35,6 +38,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int SUCCESS =0 ;
     private static final int ERROR =1 ;
     private ImageButton mImageButton;
+    private MyHandler mUIHandler;
 
 
 
@@ -44,6 +48,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mImageButton=findViewById(R.id.image_button);
+        mUIHandler =new MyHandler(this);
 
         testOkHttp();
 
@@ -52,21 +57,30 @@ public class MainActivity extends AppCompatActivity {
         testMyNetLibGetPhoto();
 
     }
+    private class MyHandler extends Handler{
+        private final WeakReference<Activity> mWeakReferenceWrapper;
+        MyHandler(Activity activity){
+            mWeakReferenceWrapper = new WeakReference<>(activity);
+        }
 
-    @SuppressLint("HandlerLeak")
-    private Handler handler = new Handler(){
         @Override
         public void handleMessage(Message msg) {
-            switch (msg.what){
-                case SUCCESS:
-                    mImageButton.setImageBitmap((Bitmap) msg.obj);
-                    break;
-                case ERROR:
-                    break;
+            Activity activity=mWeakReferenceWrapper.get();
+            super.handleMessage(msg);
+            if(activity!=null){
+                //执行业务逻辑
+                switch (msg.what){
+                    case SUCCESS:
+                        mImageButton.setImageBitmap((Bitmap) msg.obj);
+                        break;
+                    case ERROR:
+                        break;
                     default:
+                }
             }
         }
-    };
+    }
+
 
 
 
@@ -90,7 +104,7 @@ public class MainActivity extends AppCompatActivity {
                                 Message msg = Message.obtain();
                                 msg.what = SUCCESS;
                                 msg.obj = bitmap;
-                                handler.sendMessage(msg);
+                                mUIHandler.sendMessage(msg);
 
                             }
                         } catch (IOException e) {
