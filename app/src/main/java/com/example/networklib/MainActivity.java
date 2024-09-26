@@ -29,6 +29,9 @@ import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import okhttp3.sse.EventSource;
+import okhttp3.sse.EventSourceListener;
+import okhttp3.sse.EventSources;
 
 /**
  * @author jingang.li
@@ -56,7 +59,44 @@ public class MainActivity extends AppCompatActivity {
         testMyNetLibPost();
         testMyNetLibGetPhoto();
 
+        testFlowResponse();
+
     }
+
+    private void testFlowResponse() {
+        OkHttpClient client = new OkHttpClient.Builder().build();
+        // 创建请求
+        Request request = new Request.Builder()
+                .url("http://47.121.191.103:8080/ping")
+                .build();
+
+        // 使用 EventSource 来监听服务器事件
+        EventSource.Factory factory = EventSources.createFactory(client);
+        factory.newEventSource(request, new EventSourceListener() {
+            @Override
+            public void onOpen(EventSource eventSource, okhttp3.Response response) {
+                Log.d(TAG, "SSE connection opened");
+            }
+
+            @Override
+            public void onEvent(EventSource eventSource, String id, String type, String data) {
+                // 处理服务器推送的数据
+                Log.d(TAG, "New SSE event: type=" + type + ", data=" + data);
+            }
+
+            @Override
+            public void onClosed(EventSource eventSource) {
+                Log.d(TAG, "SSE connection closed");
+            }
+
+            @Override
+            public void onFailure(EventSource eventSource, Throwable t, okhttp3.Response response) {
+                Log.e(TAG, "SSE connection failed", t);
+            }
+        });
+
+    }
+
     private class MyHandler extends Handler{
         private final WeakReference<Activity> mWeakReferenceWrapper;
         MyHandler(Activity activity){
