@@ -1,16 +1,16 @@
 package com.example.networklib;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Handler;
-import android.os.Looper;
 import android.os.Message;
+import android.os.RemoteException;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.ImageButton;
+import android.widget.TextView;
 
 import com.example.networklib.calllbacks.DefaultCallback;
 import com.example.networklib.httpclient.HttpClient;
@@ -42,15 +42,17 @@ public class MainActivity extends AppCompatActivity {
     private static final int ERROR =1 ;
     private ImageButton mImageButton;
     private MyHandler mUIHandler;
-
+    private TextView mTextView;
 
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        notifyLifeCycle("onCreate", "start");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mImageButton=findViewById(R.id.image_button);
+        mTextView =findViewById(R.id.text_view);
         mUIHandler =new MyHandler(this);
 
         testOkHttp();
@@ -60,7 +62,48 @@ public class MainActivity extends AppCompatActivity {
         testMyNetLibGetPhoto();
 
         testFlowResponse();
+        DataController.INSTANCE.getWelComeData().observe( this, welcomeData -> {
+            Log.d(TAG, "welcomeData="+welcomeData);
+            mTextView.setText(welcomeData);
+        });
 
+        notifyLifeCycle("onCreate", "end");
+
+    }
+
+    @Override
+    protected void onResume() {
+        notifyLifeCycle("onResume", "start");
+        super.onResume();
+        notifyLifeCycle("onResume", "end");
+    }
+
+    @Override
+    protected void onRestart() {
+        notifyLifeCycle("onRestart", "start");
+        super.onRestart();
+        notifyLifeCycle("onRestart", "end");
+    }
+
+    @Override
+    protected void onPause() {
+        notifyLifeCycle("onPause", "start");
+        super.onPause();
+        notifyLifeCycle("onPause", "end");
+    }
+
+    @Override
+    protected void onStop() {
+        notifyLifeCycle("onStop", "start");
+        super.onStop();
+        notifyLifeCycle("onStop", "end");
+    }
+
+    @Override
+    protected void onDestroy() {
+        notifyLifeCycle("onDestroy", "start");
+        super.onDestroy();
+        notifyLifeCycle("onDestroy", "end");
     }
 
     private void testFlowResponse() {
@@ -260,5 +303,23 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+    }
+
+    private void notifyLifeCycle(String lifeEvent, String msg) {
+        Log.d(TAG,"notifyLifeCycle lifeEvent="+lifeEvent+", msg="+ msg);
+        int len = DataController.INSTANCE.getIpcCallBackList().beginBroadcast();
+        for (int i = 0; i <len ; i++) {
+            try {
+                ICommonCallback callback = DataController.INSTANCE.getIpcCallBackList().getBroadcastItem( i);
+                if(callback!=null){
+                    callback.onEvent(lifeEvent, msg);
+                }
+            } catch (RemoteException e) {
+                throw new RuntimeException(e);
+            }
+            finally {
+                DataController.INSTANCE.getIpcCallBackList().finishBroadcast();
+            }
+        }
     }
 }
