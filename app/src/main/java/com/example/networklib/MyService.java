@@ -20,7 +20,7 @@ public class MyService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        PermissionChecker.INSTANCE.init( this);
+        PermissionChecker.INSTANCE.init( this.getApplicationContext());
     }
 
 
